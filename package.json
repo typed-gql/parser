@@ -1,0 +1,24 @@
+{
+  "private": true,
+  "name": "@typed-gql/parser",
+  "version": "0.1.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/typed-gql/parser.git"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@typed-gql/lexer": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@typed-gql/lexer": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
