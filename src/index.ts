@@ -151,7 +151,7 @@ export type Directives = Directive[];
 
 export interface Directive {
   name: string;
-  arguments: Arguments;
+  arguments?: Arguments;
 }
 
 export type ExecutableDefinition = OperationDefinition | FragmentDefinition;
@@ -418,6 +418,11 @@ const operationTypes = ["query", "mutation", "subscription"] as const;
 type ParseResult<T> = ParseSuccessResult<T> | Error;
 type ParseSuccessResult<T> = [result: T, nextIndex: number];
 
+function unwrap(error: Error, alternatives?: string): never;
+function unwrap<T>(
+  result: ParseResult<T>,
+  alternatives?: string
+): ParseSuccessResult<T>;
 function unwrap<T>(
   result: ParseResult<T>,
   alternatives?: string
@@ -446,14 +451,14 @@ function expect<T extends Token["type"]>(
   token: Token | undefined,
   tokenType: T,
   alternatives?: string
-): ParseSuccessResult<Extract<TokenV2, Record<"type", T>>> {
-  if (token?.type === tokenType) {
-    return [token as Extract<TokenV2, Record<"type", T>>, 0];
+): Extract<TokenV2, Record<"type", T>> {
+  if (token?.type !== tokenType) {
+    const message = alternatives
+      ? `Expected ${alternatives}, or ${tokenType}`
+      : `Expected ${tokenType}`;
+    unwrap({ message, tokenNear: token });
   }
-  const message = alternatives
-    ? `Expected ${alternatives}, or ${tokenType}`
-    : `Expected ${tokenType}`;
-  return unwrap({ message, tokenNear: token });
+  return token as Extract<TokenV2, Record<"type", T>>;
 }
 
 function parseDocument(
@@ -479,7 +484,9 @@ function parseDefinition(
   if (Array.isArray((tmp = parseExecutableDefinition(tokens, startIndex)))) {
     return tmp;
   } else if (
-    Array.isArray((tmp = parseExecutableDefinition(tokens, startIndex)))
+    Array.isArray(
+      (tmp = parseTypeSystemDefinitionOrExtension(tokens, startIndex))
+    )
   ) {
     return tmp;
   }
@@ -514,13 +521,13 @@ function parseOperationDefinition(
     return { message: "Expected OperationType" };
   }
   const operationType = tmp.value;
-  const [{ value: name }] = expect(tokens[index++], "name");
+  const { value: name } = expect(tokens[index++], "name");
   let variableDefinitions: VariableDefinitions | undefined;
   [variableDefinitions, index] = parseOptionalVariableDefinitions(
     tokens,
     index
   );
-  let directives: Directives;
+  let directives: Directives | undefined;
   [directives, index] = parseOptionalDirectives(tokens, index);
   let selectionSet: SelectionSet;
   [selectionSet, index] = unwrap(parseSelectionSet(tokens, index));
@@ -570,7 +577,7 @@ function parseVariableDefinition(
   if (tokens[index++]?.type !== "$") {
     return { message: "Expected $", tokenNear: tokens[startIndex] };
   }
-  const [{ value: variable }] = expect(tokens[index++], "name");
+  const { value: variable } = expect(tokens[index++], "name");
   expect(tokens[index++], ":");
   let type: Type;
   [type, index] = unwrap(parseType(tokens, index));
@@ -623,23 +630,17 @@ function parseType(tokens: Token[], startIndex: number): ParseResult<Type> {
 
 function parseValue(tokens: Token[], startIndex: number): ParseResult<Value> {
   let tmp: ParseResult<Value>;
-  if (Array.isArray((tmp = parseVariable(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseIntValue(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseFloatValue(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseStringValue(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseBooleanValue(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseNullValue(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseEnumValue(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseListValue(tokens, startIndex)))) {
-    return tmp;
-  } else if (Array.isArray((tmp = parseObjectValue(tokens, startIndex)))) {
+  if (
+    Array.isArray((tmp = parseVariable(tokens, startIndex))) ||
+    Array.isArray((tmp = parseIntValue(tokens, startIndex))) ||
+    Array.isArray((tmp = parseFloatValue(tokens, startIndex))) ||
+    Array.isArray((tmp = parseStringValue(tokens, startIndex))) ||
+    Array.isArray((tmp = parseBooleanValue(tokens, startIndex))) ||
+    Array.isArray((tmp = parseNullValue(tokens, startIndex))) ||
+    Array.isArray((tmp = parseEnumValue(tokens, startIndex))) ||
+    Array.isArray((tmp = parseListValue(tokens, startIndex))) ||
+    Array.isArray((tmp = parseObjectValue(tokens, startIndex)))
+  ) {
     return tmp;
   }
   return {
@@ -697,7 +698,7 @@ function parseEnumValue(
   if (current?.type !== "name") {
     return { message: "Expected EnumValue", tokenNear: current };
   }
-  if (arrayIncludes([], current.value)) {
+  if (arrayIncludes(["true", "false", "null"], current.value)) {
     return {
       message: "EnumValue can't be one of true, false, or null",
       tokenNear: current,
@@ -731,4 +732,260 @@ function parseBooleanValue(
     return { message: "Expected one of true, false", tokenNear: current };
   }
   return [{ type: "boolean", value: current.value === "true" }, index];
+}
+
+function parseStringValue(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<StringValue> {
+  let index = startIndex;
+  const current = tokens[index++];
+  if (current?.type !== "string") {
+    return { message: "Expected one of true, false", tokenNear: current };
+  }
+  return [{ type: "string", value: current.value }, index];
+}
+
+function parseFloatValue(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<FloatValue> {
+  let index = startIndex;
+  const current = tokens[index++];
+  if (current?.type !== "float") {
+    return { message: "Expected float", tokenNear: current };
+  }
+  return [{ type: "float", value: current.value }, index];
+}
+
+function parseIntValue(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<IntValue> {
+  let index = startIndex;
+  const current = tokens[index++];
+  if (current?.type !== "int") {
+    return { message: "Expected int", tokenNear: current };
+  }
+  return [{ type: "int", value: current.value }, index];
+}
+
+function parseVariable(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<Variable> {
+  let index = startIndex;
+  if (tokens[index++]?.type !== "$") {
+    return { message: "Expected $", tokenNear: tokens[startIndex] };
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  return [{ type: "variable", name }, index];
+}
+
+function parseOptionalDirectives(
+  tokens: Token[],
+  startIndex: number
+): ParseSuccessResult<Directives | undefined> {
+  let index = startIndex;
+  if (tokens[index]?.type !== "@") {
+    return [undefined, startIndex];
+  }
+  const result: Directive[] = [];
+  while (tokens[index]?.type === "@") {
+    index++;
+    const { value: name } = expect(tokens[index++], "name");
+    let arguments_: Arguments | undefined;
+    [arguments_, index] = parseOptionalArguments(tokens, index);
+    result.push({ name, arguments: arguments_ });
+  }
+  return [result, index];
+}
+
+function parseOptionalArguments(
+  tokens: Token[],
+  startIndex: number
+): ParseSuccessResult<Arguments | undefined> {
+  let index = startIndex;
+  if (tokens[index++]?.type !== "(") {
+    return [undefined, startIndex];
+  }
+  let argument: Argument;
+  [argument, index] = unwrap(parseArgument(tokens, index));
+  const result = [argument];
+  while (tokens[index]?.type !== ")") {
+    [argument, index] = unwrap(parseArgument(tokens, index));
+    result.push(argument);
+  }
+  expect(tokens[index++], ")");
+  return [result, index];
+}
+
+function parseArgument(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<Argument> {
+  let index = startIndex;
+  const current = tokens[index++];
+  if (current?.type !== "name") {
+    return { message: "Expected name", tokenNear: current };
+  }
+  const name = current.value;
+  expect(tokens[index++], ":");
+  let value: Value;
+  [value, index] = unwrap(parseValue(tokens, index));
+  return [{ name, value }, index];
+}
+
+function parseSelectionSet(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<SelectionSet> {
+  let index = startIndex;
+  if (tokens[index++]?.type !== "{") {
+    return { message: "Expected {", tokenNear: tokens[startIndex] };
+  }
+  let selection: Selection;
+  [selection, index] = unwrap(parseSelection(tokens, index));
+  const result = [selection];
+  while (tokens[index]?.type !== "}") {
+    [selection, index] = unwrap(parseSelection(tokens, index));
+    result.push(selection);
+  }
+  expect(tokens[index++], "}");
+  return [result, index];
+}
+
+function parseSelection(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<Selection> {
+  let tmp: ParseResult<Selection>;
+  if (
+    Array.isArray((tmp = parseField(tokens, startIndex))) ||
+    Array.isArray((tmp = parseFragmentSpread(tokens, startIndex))) ||
+    Array.isArray((tmp = parseInlineFragment(tokens, startIndex)))
+  ) {
+    return tmp;
+  }
+  return {
+    message: "Unrecognized Selection",
+    tokenNear: tokens[startIndex],
+  };
+}
+
+function parseInlineFragment(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<InlineFragment> {
+  let index = startIndex;
+  if (tokens[index++]?.type !== "...") {
+    return { message: "Expeected ...", tokenNear: tokens[startIndex] };
+  }
+  let typeCondition: string | undefined = undefined;
+  {
+    const maybeOn = tokens[index];
+    if (maybeOn.type === "name") {
+      if (maybeOn.value === "on") {
+        index++;
+        typeCondition = maybeOn.value;
+      } else {
+        return { message: "Expected on or @ or {", tokenNear: maybeOn };
+      }
+    }
+  }
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let selectionSet: SelectionSet;
+  [selectionSet, index] = unwrap(parseSelectionSet(tokens, index));
+  return [
+    { type: "inlineFragment", typeCondition, directives, selectionSet },
+    index,
+  ];
+}
+
+function parseFragmentSpread(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<FragmentSpread> {
+  let index = startIndex;
+  if (tokens[index++]?.type !== "...") {
+    return { message: "Expeected ...", tokenNear: tokens[startIndex] };
+  }
+  const name = tokens[index++];
+  if (name?.type !== "name") {
+    return { message: "Expected name", tokenNear: name };
+  }
+  if (name.value === "on") {
+    return { message: "Expected name other than on", tokenNear: name };
+  }
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  return [{ type: "fragmentSpread", name: name.value, directives }, index];
+}
+
+function parseField(tokens: Token[], startIndex: number): ParseResult<Field> {
+  let index = startIndex;
+  const nameOrAlias = tokens[index++];
+  if (nameOrAlias?.type !== "name") {
+    return { message: "Expected name", tokenNear: nameOrAlias };
+  }
+  let name: string | undefined;
+  if (tokens[index]?.type === ":") {
+    index++;
+    ({ value: name } = expect(tokens[index++], "name"));
+  }
+  let arguments_: Arguments | undefined;
+  [arguments_, index] = parseOptionalArguments(tokens, index);
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let selectionSet: SelectionSet | undefined = undefined;
+  const selectionSetResult = parseSelectionSet(tokens, index);
+  if (Array.isArray(selectionSetResult)) {
+    [selectionSet, index] = selectionSetResult;
+  }
+  const [realName, realAlias] =
+    name === undefined ? [nameOrAlias.value] : [name, nameOrAlias.value];
+  return [
+    {
+      type: "field",
+      name: realName,
+      alias: realAlias,
+      arguments: arguments_,
+      directives,
+      selectionSet,
+    },
+    index,
+  ];
+}
+
+function parseFragmentDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<FragmentDefinition> {
+  let index = startIndex;
+  const fragment = tokens[index++];
+  if (fragment.type !== "name" || fragment.value !== "fragment") {
+    return { message: "Expected fragment", tokenNear: fragment };
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  const on = expect(tokens[index++], "name");
+  if (on.value !== "on") {
+    unwrap({ message: "Expected on", tokenNear: on });
+  }
+  const { value: typeCondition } = expect(tokens[index++], "name");
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let selectionSet: SelectionSet;
+  [selectionSet, index] = unwrap(parseSelectionSet(tokens, index));
+  return [
+    {
+      type: "executable",
+      subType: "fragment",
+      name,
+      typeCondition,
+      directives,
+      selectionSet,
+    },
+    index,
+  ];
 }
