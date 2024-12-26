@@ -383,7 +383,7 @@ export type TypeSystemDefinitionOrExtension =
 
 export interface Error {
   message: string;
-  tokenNear?: Token;
+  tokenNear: Token | undefined;
 }
 
 export function parse(input: Token[]): Document | Error {
@@ -434,7 +434,7 @@ function unwrap<T>(
   return result;
 }
 
-function arrayIncludes<T extends string>(
+function arrayIncludes<const T extends string>(
   array: readonly T[],
   string: string
 ): string is T {
@@ -518,7 +518,7 @@ function parseOperationDefinition(
   let index = startIndex;
   const tmp = tokens[index++];
   if (tmp?.type !== "name" || !arrayIncludes(operationTypes, tmp.value)) {
-    return { message: "Expected OperationType" };
+    return { message: "Expected OperationType", tokenNear: tmp };
   }
   const operationType = tmp.value;
   const { value: name } = expect(tokens[index++], "name");
@@ -1571,4 +1571,453 @@ function parseRootOperationTypeDefinition(
   expect(tokens[index++], ":");
   const { value: type } = expect(tokens[index++], "name");
   return [{ operationType, type }, index];
+}
+
+function parseTypeSystemDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<TypeSystemDefinition> {
+  let tmp: ParseResult<TypeSystemDefinition>;
+  if (
+    Array.isArray((tmp = parseSchemaDefinition(tokens, startIndex))) ||
+    Array.isArray((tmp = parseTypeDefinition(tokens, startIndex))) ||
+    Array.isArray((tmp = parseDirectiveDefinition(tokens, startIndex)))
+  ) {
+    return tmp;
+  }
+  return {
+    message: "Unrecognized TypeSystemDefinition",
+    tokenNear: tokens[startIndex],
+  };
+}
+
+function parseDirectiveDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<DirectiveDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    const directive = tokens[index++];
+    if (directive?.type !== "name" || directive.value !== "directive") {
+      return { message: "Expected directive", tokenNear: directive };
+    }
+  }
+  expect(tokens[index++], "@");
+  const { value: name } = expect(tokens[index++], "name");
+  let argumentsDefinition: ArgumentsDefinition | undefined;
+  [argumentsDefinition, index] = parseOptionalArgumentsDefinition(
+    tokens,
+    index
+  );
+  let repeatable = false;
+  {
+    const maybeRepeatable = tokens[index];
+    if (
+      maybeRepeatable?.type === "string" &&
+      maybeRepeatable.value === "repeatable"
+    ) {
+      index++;
+      repeatable = true;
+    }
+  }
+  {
+    const on = expect(tokens[index++], "name");
+    if (on.value !== "on") {
+      unwrap({ message: "Expected on", tokenNear: on });
+    }
+  }
+  let directiveLocations: DirectiveLocation[];
+  [directiveLocations, index] = unwrap(parseDirectiveLocations(tokens, index));
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "directive",
+      description,
+      name,
+      argumentsDefinition,
+      repeatable,
+      directiveLocations,
+    },
+    index,
+  ];
+}
+
+function parseDirectiveLocations(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<DirectiveLocation[]> {
+  let index = startIndex;
+  if (tokens[index]?.type === "|") {
+    index++;
+  }
+  let directiveLocation: DirectiveLocation;
+  [directiveLocation, index] = unwrap(parseDirectiveLocation(tokens, index));
+  const result = [directiveLocation];
+  while (tokens[index]?.type === "|") {
+    index++;
+    [directiveLocation, index] = unwrap(parseDirectiveLocation(tokens, index));
+    result.push(directiveLocation);
+  }
+  return [result, index];
+}
+
+function parseDirectiveLocation(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<DirectiveLocation> {
+  let index = startIndex;
+  const current = tokens[index++];
+  if (
+    current?.type !== "string" ||
+    !arrayIncludes(
+      [
+        "QUERY",
+        "MUTATION",
+        "SUBSCRIPTION",
+        "FIELD",
+        "FRAGMENT_DEFINITION",
+        "FRAGMENT_SPREAD",
+        "INLINE_FRAGMENT",
+        "VARIABLE_DEFINITION",
+        "SCHEMA",
+        "SCALAR",
+        "OBJECT",
+        "FIELD_DEFINITION",
+        "ARGUMENT_DEFINITION",
+        "INTERFACE",
+        "UNION",
+        "ENUM",
+        "ENUM_VALUE",
+        "INPUT_OBJECT",
+        "INPUT_FIELD_DEFINITION",
+      ],
+      current.value
+    )
+  ) {
+    return { message: "Expected DirectiveLocation", tokenNear: current };
+  }
+  return [current.value, index];
+}
+
+function parseTypeDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<TypeDefinition> {
+  let tmp: ParseResult<TypeDefinition>;
+  if (
+    Array.isArray((tmp = parseScalarTypeDefinition(tokens, startIndex))) ||
+    Array.isArray((tmp = parseObjectTypeDefinition(tokens, startIndex))) ||
+    Array.isArray((tmp = parseInterfaceTypeDefinition(tokens, startIndex))) ||
+    Array.isArray((tmp = parseUnionTypeDefinition(tokens, startIndex))) ||
+    Array.isArray((tmp = parseEnumTypeDefinition(tokens, startIndex))) ||
+    Array.isArray((tmp = parseInputObjectTypeDefinition(tokens, startIndex)))
+  ) {
+    return tmp;
+  }
+  return {
+    message: "Unrecognized TypeDefinition",
+    tokenNear: tokens[startIndex],
+  };
+}
+
+function parseInputObjectTypeDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<InputObjectTypeDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    let input = tokens[index++];
+    if (input?.type !== "name" || input.value !== "input") {
+      return { message: "Expected input", tokenNear: input };
+    }
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let inputFieldsDefinition: InputFieldsDefinition | undefined;
+  [inputFieldsDefinition, index] = parseOptionalInputFieldsDefinition(
+    tokens,
+    index
+  );
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "type",
+      typeType: "inputObject",
+      description,
+      name,
+      directives,
+      inputFieldsDefinition,
+    },
+    index,
+  ];
+}
+
+function parseEnumTypeDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<EnumTypeDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    let enum_ = tokens[index++];
+    if (enum_?.type !== "name" || enum_.value !== "enum") {
+      return { message: "Expected enum", tokenNear: enum_ };
+    }
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let enumValuesDefinition: EnumValuesDefinition | undefined;
+  [enumValuesDefinition, index] = parseOptionalEnumValuesDefinition(
+    tokens,
+    index
+  );
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "type",
+      typeType: "enum",
+      description,
+      name,
+      directives,
+      enumValuesDefinition,
+    },
+    index,
+  ];
+}
+
+function parseUnionTypeDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<UnionTypeDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    let union = tokens[index++];
+    if (union?.type !== "name" || union.value !== "union") {
+      return { message: "Expected union", tokenNear: union };
+    }
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  let implementsInterfaces: string[] | undefined;
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let unionMemberTypes: string[] | undefined;
+  [unionMemberTypes, index] = parseOptionalUnionMemberTypes(tokens, index);
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "type",
+      typeType: "union",
+      description,
+      name,
+      directives,
+      unionMemberTypes,
+    },
+    index,
+  ];
+}
+
+function parseInterfaceTypeDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<InterfaceTypeDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    let interface_ = tokens[index++];
+    if (interface_?.type !== "name" || interface_.value !== "interface") {
+      return { message: "Expected interface", tokenNear: interface_ };
+    }
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  let implementsInterfaces: string[] | undefined;
+  [implementsInterfaces, index] = parseOptionalImplementsInterfaces(
+    tokens,
+    index
+  );
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let fieldsDefinition: FieldsDefinition | undefined;
+  [fieldsDefinition, index] = parseOptionalFieldsDefinition(tokens, index);
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "type",
+      typeType: "interface",
+      description,
+      name,
+      implementsInterfaces,
+      directives,
+      fieldsDefinition,
+    },
+    index,
+  ];
+}
+
+function parseObjectTypeDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<ObjectTypeDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    let object = tokens[index++];
+    if (object?.type !== "name" || object.value !== "object") {
+      return { message: "Expected object", tokenNear: object };
+    }
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  let implementsInterfaces: string[] | undefined;
+  [implementsInterfaces, index] = parseOptionalImplementsInterfaces(
+    tokens,
+    index
+  );
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let fieldsDefinition: FieldsDefinition | undefined;
+  [fieldsDefinition, index] = parseOptionalFieldsDefinition(tokens, index);
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "type",
+      typeType: "object",
+      description,
+      name,
+      implementsInterfaces,
+      directives,
+      fieldsDefinition,
+    },
+    index,
+  ];
+}
+
+function parseScalarTypeDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<ScalarTypeDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    let scalar = tokens[index++];
+    if (scalar?.type !== "name" || scalar.value !== "scalar") {
+      return { message: "Expected scalar", tokenNear: scalar };
+    }
+  }
+  const { value: name } = expect(tokens[index++], "name");
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "type",
+      typeType: "scalar",
+      description,
+      name,
+      directives,
+    },
+    index,
+  ];
+}
+
+function parseSchemaDefinition(
+  tokens: Token[],
+  startIndex: number
+): ParseResult<SchemaDefinition> {
+  let index = startIndex;
+  let description: string | undefined = undefined;
+  {
+    const maybeDescription = tokens[index];
+    if (maybeDescription?.type === "string") {
+      index++;
+      description = maybeDescription.value;
+    }
+  }
+  {
+    const schema = tokens[index++];
+    if (schema?.type !== "name" || schema.value !== "schema") {
+      return { message: "Expected schema", tokenNear: schema };
+    }
+  }
+  let directives: Directives | undefined;
+  [directives, index] = parseOptionalDirectives(tokens, index);
+  let rootOperationTypeDefinitions: RootOperationTypeDefinition[] | undefined;
+  [rootOperationTypeDefinitions, index] =
+    parseOptionalRootOperationTypesDefinition(tokens, index);
+  if (!rootOperationTypeDefinitions) {
+    unwrap({
+      message: "Expected { RootOperationTypeDefinition_list }",
+      tokenNear: tokens[index],
+    });
+  }
+  return [
+    {
+      type: "typeSystem",
+      subType: "definition",
+      definitionType: "schema",
+      description,
+      directives,
+      rootOperationTypeDefinitions,
+    },
+    index,
+  ];
 }

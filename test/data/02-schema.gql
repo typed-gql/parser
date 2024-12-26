@@ -1,0 +1,18 @@
+"""
+My schema
+"""
+schema {
+  query: query,
+  mutation: Mutation
+}
+
+extend schema @myDirective @myDirective(test: true)
+
+extend schema @myDirective(test: true) {
+  # test
+  subscription: Subscription
+}
+
+extend schema {
+  subscription: MySubscription
+}

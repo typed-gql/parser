@@ -1,0 +1,76 @@
+[
+  {
+    "definitionType": "schema",
+    "description": "My schema",
+    "rootOperationTypeDefinitions": [
+      {
+        "operationType": "query",
+        "type": "query"
+      },
+      {
+        "operationType": "mutation",
+        "type": "Mutation"
+      }
+    ],
+    "subType": "definition",
+    "type": "typeSystem"
+  },
+  {
+    "directives": [
+      {
+        "name": "myDirective"
+      },
+      {
+        "arguments": [
+          {
+            "name": "test",
+            "value": {
+              "type": "boolean",
+              "value": true
+            }
+          }
+        ],
+        "name": "myDirective"
+      }
+    ],
+    "extensionType": "schema",
+    "subType": "extension",
+    "type": "typeSystem"
+  },
+  {
+    "directives": [
+      {
+        "arguments": [
+          {
+            "name": "test",
+            "value": {
+              "type": "boolean",
+              "value": true
+            }
+          }
+        ],
+        "name": "myDirective"
+      }
+    ],
+    "extensionType": "schema",
+    "rootOperationTypeDefinitions": [
+      {
+        "operationType": "subscription",
+        "type": "Subscription"
+      }
+    ],
+    "subType": "extension",
+    "type": "typeSystem"
+  },
+  {
+    "extensionType": "schema",
+    "rootOperationTypeDefinitions": [
+      {
+        "operationType": "subscription",
+        "type": "MySubscription"
+      }
+    ],
+    "subType": "extension",
+    "type": "typeSystem"
+  }
+]
