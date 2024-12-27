@@ -6,9 +6,9 @@ schema {
   mutation: Mutation
 }
 
-extend schema @myDirective @myDirective(test: true)
+extend schema @myDirective @myDirective(test: { true: false })
 
-extend schema @myDirective(test: true) {
+extend schema @myDirective(test: {}) {
   # test
   subscription: Subscription
 }

@@ -667,6 +667,7 @@ function parseObjectValue(
     let value: Value;
     [value, index] = unwrap(parseValue(tokens, index));
     result[key] = value;
+    current = tokens[index];
   }
   expect(tokens[index++], "}");
   return [{ type: "object", value: result }, index];
