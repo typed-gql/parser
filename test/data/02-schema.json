@@ -77,5 +77,486 @@
     ],
     "subType": "extension",
     "type": "typeSystem"
+  },
+  {
+    "definitionType": "type",
+    "directives": [
+      {
+        "name": "test"
+      }
+    ],
+    "fieldsDefinition": [
+      {
+        "description": "Current logged in user",
+        "directives": [
+          {
+            "arguments": [
+              {
+                "name": "if",
+                "value": {
+                  "type": "string",
+                  "value": "authenticated"
+                }
+              }
+            ],
+            "name": "nonNull"
+          }
+        ],
+        "name": "me",
+        "type": {
+          "name": "User",
+          "type": "named"
+        }
+      },
+      {
+        "argumentsDefinition": [
+          {
+            "name": "id",
+            "type": {
+              "element": {
+                "name": "ID",
+                "type": "named"
+              },
+              "type": "nonNull"
+            }
+          }
+        ],
+        "name": "userById",
+        "type": {
+          "name": "User",
+          "type": "named"
+        }
+      }
+    ],
+    "name": "query",
+    "subType": "definition",
+    "type": "typeSystem",
+    "typeType": "object"
+  },
+  {
+    "definitionType": "type",
+    "fieldsDefinition": [
+      {
+        "directives": [
+          {
+            "name": "uuid"
+          }
+        ],
+        "name": "id",
+        "type": {
+          "element": {
+            "name": "ID",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      }
+    ],
+    "name": "Entity",
+    "subType": "definition",
+    "type": "typeSystem",
+    "typeType": "interface"
+  },
+  {
+    "definitionType": "type",
+    "directives": [
+      {
+        "name": "opaque"
+      }
+    ],
+    "name": "Cursor",
+    "subType": "definition",
+    "type": "typeSystem",
+    "typeType": "scalar"
+  },
+  {
+    "definitionType": "type",
+    "fieldsDefinition": [
+      {
+        "argumentsDefinition": [
+          {
+            "name": "first",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "after",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "last",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "before",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "query",
+            "type": {
+              "name": "String",
+              "type": "named"
+            }
+          },
+          {
+            "name": "filter",
+            "type": {
+              "name": "RepositorySearchFilter",
+              "type": "named"
+            }
+          },
+          {
+            "name": "order",
+            "type": {
+              "name": "RepositorySearchOrder",
+              "type": "named"
+            }
+          }
+        ],
+        "name": "repositories",
+        "type": {
+          "element": {
+            "name": "RepositoryConnection",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      }
+    ],
+    "implementsInterfaces": [
+      "Entity"
+    ],
+    "name": "RepositoryOwner",
+    "subType": "definition",
+    "type": "typeSystem",
+    "typeType": "interface"
+  },
+  {
+    "definitionType": "type",
+    "fieldsDefinition": [
+      {
+        "directives": [
+          {
+            "name": "uuid"
+          }
+        ],
+        "name": "id",
+        "type": {
+          "element": {
+            "name": "ID",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      },
+      {
+        "name": "slug",
+        "type": {
+          "element": {
+            "name": "String",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      },
+      {
+        "argumentsDefinition": [
+          {
+            "name": "first",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "after",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "last",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "before",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "query",
+            "type": {
+              "name": "String",
+              "type": "named"
+            }
+          },
+          {
+            "name": "filter",
+            "type": {
+              "name": "RepositorySearchFilter",
+              "type": "named"
+            }
+          },
+          {
+            "name": "order",
+            "type": {
+              "name": "RepositorySearchOrder",
+              "type": "named"
+            }
+          }
+        ],
+        "name": "repositories",
+        "type": {
+          "element": {
+            "name": "RepositoryConnection",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      }
+    ],
+    "implementsInterfaces": [
+      "Entity",
+      "RepositoryOwner"
+    ],
+    "name": "TopLevelEntity",
+    "subType": "definition",
+    "type": "typeSystem",
+    "typeType": "interface"
+  },
+  {
+    "definitionType": "type",
+    "fieldsDefinition": [
+      {
+        "directives": [
+          {
+            "name": "uuid"
+          }
+        ],
+        "name": "id",
+        "type": {
+          "element": {
+            "name": "ID",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      },
+      {
+        "description": "Login",
+        "name": "slug",
+        "type": {
+          "element": {
+            "name": "String",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      },
+      {
+        "argumentsDefinition": [
+          {
+            "name": "first",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "after",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "last",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "before",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "query",
+            "type": {
+              "name": "String",
+              "type": "named"
+            }
+          },
+          {
+            "name": "filter",
+            "type": {
+              "name": "RepositorySearchFilter",
+              "type": "named"
+            }
+          },
+          {
+            "name": "order",
+            "type": {
+              "name": "RepositorySearchOrder",
+              "type": "named"
+            }
+          }
+        ],
+        "name": "repositories",
+        "type": {
+          "element": {
+            "name": "RepositoryConnection",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      },
+      {
+        "name": "groups",
+        "type": {
+          "element": {
+            "element": {
+              "element": {
+                "name": "Group",
+                "type": "named"
+              },
+              "type": "nonNull"
+            },
+            "type": "list"
+          },
+          "type": "nonNull"
+        }
+      }
+    ],
+    "implementsInterfaces": [
+      "TopLevelEntity",
+      "Entity",
+      "RepositoryOwner"
+    ],
+    "name": "User",
+    "subType": "definition",
+    "type": "typeSystem",
+    "typeType": "object"
+  },
+  {
+    "definitionType": "type",
+    "fieldsDefinition": [
+      {
+        "directives": [
+          {
+            "name": "uuid"
+          }
+        ],
+        "name": "id",
+        "type": {
+          "element": {
+            "name": "ID",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      },
+      {
+        "description": "name",
+        "name": "slug",
+        "type": {
+          "element": {
+            "name": "String",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      },
+      {
+        "argumentsDefinition": [
+          {
+            "name": "first",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "after",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "last",
+            "type": {
+              "name": "Int",
+              "type": "named"
+            }
+          },
+          {
+            "name": "before",
+            "type": {
+              "name": "Cursor",
+              "type": "named"
+            }
+          },
+          {
+            "name": "query",
+            "type": {
+              "name": "String",
+              "type": "named"
+            }
+          },
+          {
+            "name": "filter",
+            "type": {
+              "name": "RepositorySearchFilter",
+              "type": "named"
+            }
+          },
+          {
+            "name": "order",
+            "type": {
+              "name": "RepositorySearchOrder",
+              "type": "named"
+            }
+          }
+        ],
+        "name": "repositories",
+        "type": {
+          "element": {
+            "name": "RepositoryConnection",
+            "type": "named"
+          },
+          "type": "nonNull"
+        }
+      }
+    ],
+    "implementsInterfaces": [
+      "TopLevelEntity",
+      "Entity",
+      "RepositoryOwner"
+    ],
+    "name": "Group",
+    "subType": "definition",
+    "type": "typeSystem",
+    "typeType": "object"
   }
 ]

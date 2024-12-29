@@ -609,9 +609,9 @@ function parseType(tokens: Token[], startIndex: number): ParseResult<Type> {
       index,
     ];
   } else if (tokens[index]?.type === "name") {
-    const name = tokens[index];
+    const name = tokens[index++];
     if (name?.type !== "name") {
-      return { message: "Expected name", tokenNear: tokens[index] };
+      return { message: "Expected name", tokenNear: name };
     }
     let isNonNull = tokens[index]?.type === "!";
     if (isNonNull) {
@@ -1913,9 +1913,9 @@ function parseObjectTypeDefinition(
     }
   }
   {
-    let object = tokens[index++];
-    if (object?.type !== "name" || object.value !== "object") {
-      return { message: "Expected object", tokenNear: object };
+    let type = tokens[index++];
+    if (type?.type !== "name" || type.value !== "type") {
+      return { message: "Expected type", tokenNear: type };
     }
   }
   const { value: name } = expect(tokens[index++], "name");

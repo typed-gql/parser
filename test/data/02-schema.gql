@@ -16,3 +16,43 @@ extend schema @myDirective(test: {}) {
 extend schema {
   subscription: MySubscription
 }
+
+type query @test {
+  "Current logged in user" me: User @nonNull(if: "authenticated")
+  userById(id: ID!): User
+}
+
+interface Entity {
+  id: ID! @uuid
+}
+
+scalar Cursor @opaque
+
+interface RepositoryOwner implements Entity {
+  repositories(first: Int, after: Cursor, last: Int, before: Cursor, query: String filter: RepositorySearchFilter order: RepositorySearchOrder): RepositoryConnection!
+}
+
+interface TopLevelEntity implements & Entity & RepositoryOwner {
+  id:ID!@uuid
+  slug
+  :String
+  !repositories(first:Int,after:Cursor,last:Int,before:Cursor,query:String filter:RepositorySearchFilter order:RepositorySearchOrder) :RepositoryConnection
+  !
+}
+
+type User implements TopLevelEntity & Entity & RepositoryOwner {
+  id: ID! @uuid
+
+  """
+  Login
+  """
+  slug: String!
+
+  repositories(first: Int, after: Cursor, last: Int, before: Cursor, query: String, filter: RepositorySearchFilter, order: RepositorySearchOrder): RepositoryConnection!
+
+  groups: [Group!]!
+}
+
+type Group implements TopLevelEntity,&,Entity,&,RepositoryOwner {
+  id:ID!@uuid"""name"""slug:String!repositories(first:Int,after:Cursor,last:Int,before:Cursor,query:String,filter:RepositorySearchFilter,order:RepositorySearchOrder):RepositoryConnection!
+}
