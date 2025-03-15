@@ -12,6 +12,8 @@ export type Definition = ExecutableDefinition | TypeSystemDefinitionOrExtension;
 
 export interface ExecutableDefinitionBase {
   type: "executable";
+  directives?: Directives;
+  selectionSet: SelectionSet;
 }
 
 export interface OperationDefinition extends ExecutableDefinitionBase {
@@ -19,8 +21,6 @@ export interface OperationDefinition extends ExecutableDefinitionBase {
   operationType?: OperationType;
   name?: string;
   variableDefinitions?: VariableDefinitions;
-  directives?: Directives;
-  selectionSet: SelectionSet;
 }
 
 export type OperationType = "query" | "mutation" | "subscription";
@@ -62,8 +62,6 @@ export interface FragmentDefinition extends ExecutableDefinitionBase {
   subType: "fragment";
   name: string;
   typeCondition: string;
-  directives?: Directives;
-  selectionSet: SelectionSet;
 }
 
 export type Value =
@@ -163,11 +161,11 @@ export interface TypeSystemDefinitionOrExtensionBase {
 export interface TypeSystemDefinitionBase
   extends TypeSystemDefinitionOrExtensionBase {
   subType: "definition";
+  description?: string;
 }
 
 export interface SchemaDefinition extends TypeSystemDefinitionBase {
   definitionType: "schema";
-  description?: string;
   directives?: Directives;
   rootOperationTypeDefinitions: RootOperationTypeDefinition[];
 }
@@ -179,21 +177,17 @@ export interface RootOperationTypeDefinition {
 
 export interface TypeDefinitionBase extends TypeSystemDefinitionBase {
   definitionType: "type";
+  name: string;
+  directives?: Directives;
 }
 
 export interface ScalarTypeDefinition extends TypeDefinitionBase {
   typeType: "scalar";
-  description?: string;
-  name: string;
-  directives?: Directives;
 }
 
 export interface ObjectTypeDefinition extends TypeDefinitionBase {
   typeType: "object";
-  description?: string;
-  name: string;
   implementsInterfaces?: string[];
-  directives?: Directives;
   fieldsDefinition?: FieldsDefinition;
 }
 
@@ -219,26 +213,17 @@ export interface InputValueDefinition {
 
 export interface InterfaceTypeDefinition extends TypeDefinitionBase {
   typeType: "interface";
-  description?: string;
-  name: string;
   implementsInterfaces?: string[];
-  directives?: Directives;
   fieldsDefinition?: FieldsDefinition;
 }
 
 export interface UnionTypeDefinition extends TypeDefinitionBase {
   typeType: "union";
-  description?: string;
-  name: string;
-  directives?: Directives;
   unionMemberTypes?: string[];
 }
 
 export interface EnumTypeDefinition extends TypeDefinitionBase {
   typeType: "enum";
-  description?: string;
-  name: string;
-  directives?: Directives;
   enumValuesDefinition?: EnumValuesDefinition;
 }
 
@@ -252,9 +237,6 @@ export interface EnumValueDefinition {
 
 export interface InputObjectTypeDefinition extends TypeDefinitionBase {
   typeType: "inputObject";
-  description?: string;
-  name: string;
-  directives?: Directives;
   inputFieldsDefinition?: InputFieldsDefinition;
 }
 
@@ -270,7 +252,6 @@ export type TypeDefinition =
 
 export interface DirectiveDefinition extends TypeSystemDefinitionBase {
   definitionType: "directive";
-  description?: string;
   name: string;
   argumentsDefinition?: ArgumentsDefinition;
   repeatable: boolean;
@@ -322,48 +303,38 @@ export interface SchemaExtension extends TypeSystemExtensionBase {
 
 export interface TypeExtensionBase extends TypeSystemExtensionBase {
   extensionType: "type";
+  name: string;
+  directives?: Directives;
 }
 
 export interface ScalarTypeExtension extends TypeExtensionBase {
   typeType: "scalar";
-  name: string;
-  directives?: Directives;
 }
 
 export interface ObjectTypeExtension extends TypeExtensionBase {
   typeType: "object";
-  name: string;
   implementsInterfaces?: string[];
-  directives?: Directives;
   fieldsDefinition?: FieldsDefinition;
 }
 
 export interface InterfaceTypeExtension extends TypeExtensionBase {
   typeType: "interface";
-  name: string;
   implementsInterfaces?: string[];
-  directives?: Directives;
   fieldsDefinition?: FieldsDefinition;
 }
 
 export interface UnionTypeExtension extends TypeExtensionBase {
   typeType: "union";
-  name: string;
-  directives?: Directives;
   unionMemberTypes?: string[];
 }
 
 export interface EnumTypeExtension extends TypeExtensionBase {
   typeType: "enum";
-  name: string;
-  directives?: Directives;
   enumValuesDefinition?: EnumValuesDefinition;
 }
 
 export interface InputObjectTypeExtension extends TypeExtensionBase {
   typeType: "inputObject";
-  name: string;
-  directives?: Directives;
   inputFieldsDefinition?: InputFieldsDefinition;
 }
 
