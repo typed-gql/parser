@@ -389,18 +389,17 @@ const operationTypes = ["query", "mutation", "subscription"] as const;
 type ParseResult<T> = ParseSuccessResult<T> | Error;
 type ParseSuccessResult<T> = [result: T, nextIndex: number];
 
-function unwrap(error: Error, alternatives?: string): never;
-function unwrap<T>(
-  result: ParseResult<T>,
-  alternatives?: string
-): ParseSuccessResult<T>;
+function raise(error: Error, alternatives?: string): never {
+  const message = alternatives ? `Expected ${alternatives}` : error.message;
+  throw new ParseError({ ...error, message });
+}
+
 function unwrap<T>(
   result: ParseResult<T>,
   alternatives?: string
 ): ParseSuccessResult<T> {
   if (!Array.isArray(result)) {
-    const message = alternatives ? `Expected ${alternatives}` : result.message;
-    throw new ParseError({ ...result, message });
+    raise(result, alternatives);
   }
   return result;
 }
@@ -427,7 +426,7 @@ function expect<T extends Token["type"]>(
     const message = alternatives
       ? `Expected ${alternatives}, or ${tokenType}`
       : `Expected ${tokenType}`;
-    unwrap({ message, tokenNear: token });
+    raise({ message, tokenNear: token });
   }
   return token as Extract<TokenV2, Record<"type", T>>;
 }
@@ -943,7 +942,7 @@ function parseFragmentDefinition(
   const { value: name } = expect(tokens[index++], "name");
   const on = expect(tokens[index++], "name");
   if (on.value !== "on") {
-    unwrap({ message: "Expected on", tokenNear: on });
+    raise({ message: "Expected on", tokenNear: on });
   }
   const { value: typeCondition } = expect(tokens[index++], "name");
   let directives: Directives | undefined;
@@ -1040,7 +1039,7 @@ function parseInputObjectTypeExtension(
     index
   );
   if (!directives && !inputFieldsDefinition) {
-    unwrap({
+    raise({
       message: "Expected at least one of Directives, InputFieldsDefinition",
       tokenNear: tokens[index],
     });
@@ -1130,7 +1129,7 @@ function parseEnumTypeExtension(
     index
   );
   if (!directives && !enumValuesDefinition) {
-    unwrap({
+    raise({
       message: "Expected at least one of Directives, EnumValuesDefinition",
       tokenNear: tokens[index],
     });
@@ -1214,7 +1213,7 @@ function parseUnionTypeExtension(
   let unionMemberTypes: string[] | undefined;
   [unionMemberTypes, index] = parseOptionalUnionMemberTypes(tokens, index);
   if (!directives && !unionMemberTypes) {
-    unwrap({
+    raise({
       message: "Expected at least one of Directives, UnionMemberTypes",
       tokenNear: tokens[index],
     });
@@ -1279,7 +1278,7 @@ function parseInterfaceTypeExtension(
   let fieldsDefinition: FieldsDefinition | undefined;
   [fieldsDefinition, index] = parseOptionalFieldsDefinition(tokens, index);
   if (!implementsInterfaces && !directives && !fieldsDefinition) {
-    unwrap({
+    raise({
       message:
         "Expected at least one of ImplementsInterfaces, Directives, fieldsDefinition",
       tokenNear: tokens[index],
@@ -1414,7 +1413,7 @@ function parseObjectTypeExtension(
   let fieldsDefinition: FieldsDefinition | undefined;
   [fieldsDefinition, index] = parseOptionalFieldsDefinition(tokens, index);
   if (!implementsInterfaces && !directives && !fieldsDefinition) {
-    unwrap({
+    raise({
       message:
         "Expected at least one of ImplementsInterfaces, Directives, fieldsDefinition",
       tokenNear: tokens[index],
@@ -1452,7 +1451,7 @@ function parseScalarTypeExtension(
   let directives: Directives | undefined;
   [directives, index] = parseOptionalDirectives(tokens, index);
   if (directives) {
-    unwrap({
+    raise({
       message: "Expected Directives",
       tokenNear: tokens[index],
     });
@@ -1489,7 +1488,7 @@ function parseSchemaExtension(
   [rootOperationTypeDefinitions, index] =
     parseOptionalRootOperationTypesDefinition(tokens, index);
   if (!directives && !rootOperationTypeDefinitions) {
-    unwrap({
+    raise({
       message:
         "Expected at least one of Directives, { RootOperationTypeDefinition_list }",
       tokenNear: tokens[index],
@@ -1538,7 +1537,7 @@ function parseRootOperationTypeDefinition(
   const current = expect(tokens[index++], "name");
   const operationType = current.value;
   if (!arrayIncludes(operationTypes, operationType)) {
-    unwrap({ message: "Expected OperationType", tokenNear: current });
+    raise({ message: "Expected OperationType", tokenNear: current });
   }
   expect(tokens[index++], ":");
   const { value: type } = expect(tokens[index++], "name");
@@ -1603,7 +1602,7 @@ function parseDirectiveDefinition(
   {
     const on = expect(tokens[index++], "name");
     if (on.value !== "on") {
-      unwrap({ message: "Expected on", tokenNear: on });
+      raise({ message: "Expected on", tokenNear: on });
     }
   }
   let directiveLocations: DirectiveLocation[];
@@ -1976,7 +1975,7 @@ function parseSchemaDefinition(
   [rootOperationTypeDefinitions, index] =
     parseOptionalRootOperationTypesDefinition(tokens, index);
   if (!rootOperationTypeDefinitions) {
-    unwrap({
+    raise({
       message: "Expected { RootOperationTypeDefinition_list }",
       tokenNear: tokens[index],
     });
